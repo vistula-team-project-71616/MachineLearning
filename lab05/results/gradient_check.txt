@@ -1,0 +1,5 @@
+Our gradients: [42.0, 28.0, 14.0]
+PyTorch gradients: [42.0, 28.0, 14.0]
+Numerical gradients: [42.000000000896875, 28.000000000361066, 13.99999999946999]
+Max difference with PyTorch: 0.0
+Max difference with numerical: 8.968754627858289e-10

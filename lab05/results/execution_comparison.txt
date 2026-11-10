@@ -1,0 +1,2 @@
+Eager time: 0.000094196 seconds
+Traced time: 0.000139388 seconds

@@ -1,0 +1,7 @@
+Shape: torch.Size([1000, 1000])
+Data type: torch.float32
+Contiguous tensor: True
+Transposed shape: torch.Size([1000, 1000])
+Transposed tensor contiguous: False
+Contiguous operation time: 0.000777080 seconds
+Non-contiguous operation time: 0.000990113 seconds

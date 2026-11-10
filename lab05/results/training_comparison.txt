@@ -1,0 +1,7 @@
+Runs: 5
+Epochs: 100
+Architecture: 2 -> 8 -> 1
+Custom autograd median time: 11.299519 seconds
+PyTorch median time: 0.094133 seconds
+Custom average accuracy: 0.9833
+PyTorch average accuracy: 0.8833
