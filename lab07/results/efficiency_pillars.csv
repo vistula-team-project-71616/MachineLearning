@@ -1,0 +1,5 @@
+Pillar,Experiment,Result
+Data,Fashion-MNIST,Same dataset and data split used in all experiments
+Model,Pruning and Knowledge Distillation,Reduced weights and smaller student models
+Compute,CPU inference,Student models had lower latency than the teacher
+Energy,Not measured,No direct energy measurements were available

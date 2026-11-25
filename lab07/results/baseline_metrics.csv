@@ -1,0 +1,2 @@
+parameters,test_accuracy,model_size_mb,latency_ms
+896906,92.23,3.4261674880981445,1.7583879998710472

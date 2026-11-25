@@ -1,0 +1,22 @@
+
+seed: 42
+
+data:
+  path: "data"
+  batch_size: 128
+  num_workers: 0
+
+model:
+  input_channels: 1
+  num_classes: 10
+  channels: [32, 64, 128]
+  hidden_size: 128
+
+training:
+  epochs: 10
+  learning_rate: 0.001
+  optimizer: "Adam"
+
+checkpoint:
+  directory: "checkpoints"
+  filename: "baseline_cnn.pth"
