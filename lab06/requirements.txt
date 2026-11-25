@@ -1,0 +1,10 @@
+torch
+torchvision
+numpy
+matplotlib
+PyYAML
+mlflow
+torchinfo
+thop
+pandas
+psutil

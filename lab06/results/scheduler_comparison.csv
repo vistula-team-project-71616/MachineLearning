@@ -1,0 +1,7 @@
+optimizer,scheduler,test_accuracy,training_time_sec
+Adam,StepLR,89.26,241.72
+Adam,CosineAnnealingLR,89.19,236.54
+Adam,ReduceLROnPlateau,89.64,277.85
+SGD,StepLR,88.87,230.63
+SGD,CosineAnnealingLR,89.02,236.47
+SGD,ReduceLROnPlateau,89.26,263.54

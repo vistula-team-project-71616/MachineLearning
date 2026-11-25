@@ -1,0 +1,5 @@
+Stage,Time (seconds),Percentage
+Data Loading,13.3357,50.78
+Forward Pass,6.0505,23.04
+Backward Pass,6.5078,24.78
+Optimizer Step,0.3674,1.40

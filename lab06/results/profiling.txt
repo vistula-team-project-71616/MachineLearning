@@ -1,0 +1,35 @@
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                                                   Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg    # of Calls  
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
+enumerate(DataLoader)#_SingleProcessDataLoaderIter._...        32.40%     313.353ms        53.79%     520.231ms      52.023ms            10  
+                             aten::convolution_backward        12.46%     120.479ms        12.51%     121.001ms       6.050ms            20  
+                               aten::mkldnn_convolution         9.15%      88.456ms         9.26%      89.528ms       4.476ms            20  
+                          aten::max_pool2d_with_indices         6.95%      67.208ms         6.95%      67.208ms       3.360ms            20  
+                               aten::threshold_backward         2.89%      27.913ms         2.89%      27.913ms       1.396ms            20  
+                                            aten::copy_         2.39%      23.115ms         2.39%      23.115ms       3.476us          6650  
+                                         aten::_to_copy         2.23%      21.540ms         4.57%      44.154ms      10.822us          4080  
+                                        aten::clamp_min         2.05%      19.868ms         2.05%      19.868ms     993.405us            20  
+                                              aten::div         1.95%      18.907ms         3.33%      32.199ms      24.029us          1340  
+                 aten::max_pool2d_with_indices_backward         1.87%      18.128ms         3.20%      30.924ms       1.546ms            20  
+                                             aten::view         1.74%      16.855ms         1.74%      16.855ms       3.266us          5160  
+                                               aten::eq         1.60%      15.502ms         3.04%      29.421ms      22.985us          1280  
+                                           aten::select         1.51%      14.614ms         1.83%      17.686ms       6.909us          2560  
+                                            aten::fill_         1.34%      12.943ms         1.34%      12.943ms     323.583us            40  
+                                              aten::any         1.24%      12.040ms         2.10%      20.287ms      15.849us          1280  
+                                            aten::addmm         1.24%      11.984ms         1.28%      12.345ms       1.235ms            10  
+                                               aten::to         1.08%      10.463ms         5.65%      54.616ms       5.907us          9246  
+                                           Forward Pass         1.04%      10.073ms        22.45%     217.136ms      21.714ms            10  
+                                    aten::empty_strided         1.04%      10.070ms         1.04%      10.070ms       1.871us          5382  
+                                             aten::sub_         0.95%       9.195ms         0.95%       9.195ms       7.184us          1280  
+                                          aten::permute         0.91%       8.773ms         1.09%      10.557ms       8.248us          1280  
+                                          Backward Pass         0.86%       8.293ms        21.13%     204.414ms      20.441ms            10  
+                               Optimizer.step#Adam.step         0.85%       8.256ms         2.52%      24.362ms       2.436ms            10  
+                                            aten::clone         0.69%       6.671ms         1.40%      13.539ms      10.577us          1280  
+                                             aten::div_         0.62%       5.953ms         0.62%       5.953ms       4.651us          1280  
+                                             aten::sqrt         0.55%       5.278ms         0.55%       5.278ms      87.962us            60  
+                                       aten::as_strided         0.54%       5.259ms         0.54%       5.259ms       1.345us          3910  
+                                            aten::empty         0.53%       5.135ms         0.53%       5.135ms       1.918us          2677  
+                                             aten::item         0.51%       4.890ms         0.74%       7.202ms       2.739us          2630  
+                                     aten::_log_softmax         0.45%       4.330ms         0.45%       4.330ms     433.000us            10  
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
+Self CPU time total: 967.187ms
