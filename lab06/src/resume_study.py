@@ -122,7 +122,6 @@ def main():
     checkpoint_path = "checkpoints/resume_checkpoint.pth"
     history = []
 
-    # First part: train for 3 epochs
     print("\nStarting training: epochs 1-3")
 
     for epoch in range(3):
@@ -143,7 +142,6 @@ def main():
             f"Test Accuracy: {accuracy:.2f}%"
         )
 
-    # Save model and optimizer state
     torch.save({
         "epoch": 3,
         "model_state_dict": model.state_dict(),
@@ -154,7 +152,6 @@ def main():
     print("\nTraining interrupted after epoch 3.")
     print("Checkpoint saved:", checkpoint_path)
 
-    # Simulate restarting: create new model and optimizer
     print("\nResuming from checkpoint...")
 
     resumed_model = create_model().to(device)
@@ -180,7 +177,6 @@ def main():
 
     print("Resumed from epoch:", start_epoch)
 
-    # Continue training: epochs 4-5
     for epoch in range(start_epoch, 5):
         loss = train_epoch(
             resumed_model,
@@ -206,7 +202,6 @@ def main():
             f"Test Accuracy: {accuracy:.2f}%"
         )
 
-    # Save final checkpoint
     torch.save({
         "epoch": 5,
         "model_state_dict": resumed_model.state_dict(),
