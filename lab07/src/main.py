@@ -1,46 +1,43 @@
-
 import os
 import time
 import random
+from pathlib import Path
+
 import yaml
 import torch
 import torch.nn as nn
 import pandas as pd
 import numpy as np
 
-from pathlib import Path
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets, transforms
 
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[1]
 
 
 class BaselineCNN(nn.Module):
-    def __init__(self, config):
+    def __init__(self, input_channels, channels, hidden_size, num_classes):
         super().__init__()
 
-        channels = config["model"]["channels"]
-        hidden = config["model"]["hidden_size"]
-
         self.features = nn.Sequential(
-            nn.Conv2d(1, channels[0], 3, padding=1),
+            nn.Conv2d(input_channels, channels[0], kernel_size=3, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2),
 
-            nn.Conv2d(channels[0], channels[1], 3, padding=1),
+            nn.Conv2d(channels[0], channels[1], kernel_size=3, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2),
 
-            nn.Conv2d(channels[1], channels[2], 3, padding=1),
+            nn.Conv2d(channels[1], channels[2], kernel_size=3, padding=1),
             nn.ReLU()
         )
 
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(channels[2] * 7 * 7, hidden),
+            nn.Linear(channels[2] * 7 * 7, hidden_size),
             nn.ReLU(),
-            nn.Linear(hidden, config["model"]["num_classes"])
+            nn.Linear(hidden_size, num_classes)
         )
 
     def forward(self, x):
@@ -75,30 +72,24 @@ def evaluate(model, loader, device):
 
 def measure_latency(model, device):
     model.eval()
-    example = torch.randn(1, 1, 28, 28).to(device)
+    sample = torch.randn(1, 1, 28, 28).to(device)
 
     with torch.no_grad():
         for _ in range(20):
-            model(example)
+            model(sample)
 
-        if device.type == "cuda":
-            torch.cuda.synchronize()
-
-        times = []
+        measurements = []
 
         for _ in range(5):
             start = time.perf_counter()
 
             for _ in range(100):
-                model(example)
+                model(sample)
 
-            if device.type == "cuda":
-                torch.cuda.synchronize()
+            end = time.perf_counter()
+            measurements.append((end - start) * 1000 / 100)
 
-            elapsed = time.perf_counter() - start
-            times.append(elapsed / 100 * 1000)
-
-    return float(np.median(times))
+    return float(np.median(measurements))
 
 
 def main():
@@ -107,7 +98,7 @@ def main():
 
     set_seed(config["seed"])
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
     print("Device:", device)
 
     transform = transforms.ToTensor()
@@ -129,21 +120,21 @@ def main():
     train_size = 55000
     val_size = 5000
 
-    train_dataset, val_dataset = random_split(
+    train_subset, val_subset = random_split(
         train_dataset,
         [train_size, val_size],
         generator=torch.Generator().manual_seed(config["seed"])
     )
 
     train_loader = DataLoader(
-        train_dataset,
+        train_subset,
         batch_size=config["data"]["batch_size"],
         shuffle=True,
         num_workers=config["data"]["num_workers"]
     )
 
     val_loader = DataLoader(
-        val_dataset,
+        val_subset,
         batch_size=config["data"]["batch_size"],
         shuffle=False,
         num_workers=config["data"]["num_workers"]
@@ -156,10 +147,12 @@ def main():
         num_workers=config["data"]["num_workers"]
     )
 
-    model = BaselineCNN(config).to(device)
-
-    parameters = sum(p.numel() for p in model.parameters())
-    print(f"Parameters: {parameters:,}")
+    model = BaselineCNN(
+        input_channels=config["model"]["input_channels"],
+        channels=config["model"]["channels"],
+        hidden_size=config["model"]["hidden_size"],
+        num_classes=config["model"]["num_classes"]
+    ).to(device)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(
@@ -168,10 +161,10 @@ def main():
     )
 
     checkpoint_dir = ROOT / config["checkpoint"]["directory"]
-    checkpoint_dir.mkdir(exist_ok=True)
-
     results_dir = ROOT / "results"
-    results_dir.mkdir(exist_ok=True)
+
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    results_dir.mkdir(parents=True, exist_ok=True)
 
     checkpoint_path = checkpoint_dir / config["checkpoint"]["filename"]
 
@@ -213,32 +206,22 @@ def main():
 
         if val_accuracy > best_accuracy:
             best_accuracy = val_accuracy
+            torch.save(model.state_dict(), checkpoint_path)
 
-            torch.save({
-                "model_state_dict": model.state_dict(),
-                "config": config,
-                "epoch": epoch + 1,
-                "val_accuracy": val_accuracy
-            }, checkpoint_path)
-
-    checkpoint = torch.load(
-        checkpoint_path,
-        map_location=device,
-        weights_only=False
-    )
-    model.load_state_dict(checkpoint["model_state_dict"])
+    model.load_state_dict(torch.load(checkpoint_path, map_location=device))
 
     test_accuracy = evaluate(model, test_loader, device)
     latency = measure_latency(model, device)
 
-    model_size = os.path.getsize(checkpoint_path) / (1024 * 1024)
+    parameters = sum(p.numel() for p in model.parameters())
+    checkpoint_size = os.path.getsize(checkpoint_path) / (1024 * 1024)
 
     print("\nBASELINE RESULTS")
+    print("Parameters:", parameters)
     print(f"Best validation accuracy: {best_accuracy:.2f}%")
     print(f"Test accuracy: {test_accuracy:.2f}%")
-    print(f"Parameters: {parameters:,}")
-    print(f"Checkpoint size: {model_size:.2f} MB")
-    print(f"CPU/GPU latency: {latency:.3f} ms per image")
+    print(f"Checkpoint size: {checkpoint_size:.2f} MB")
+    print(f"Latency: {latency:.3f} ms/image")
 
     pd.DataFrame(history).to_csv(
         results_dir / "baseline_history.csv",
@@ -247,15 +230,15 @@ def main():
 
     pd.DataFrame([{
         "parameters": parameters,
+        "best_val_accuracy": best_accuracy,
         "test_accuracy": test_accuracy,
-        "model_size_mb": model_size,
-        "latency_ms": latency
+        "checkpoint_size_mb": checkpoint_size,
+        "latency_ms": latency,
+        "device": str(device)
     }]).to_csv(
         results_dir / "baseline_metrics.csv",
         index=False
     )
-
-    print("\nBaseline model saved:", checkpoint_path)
 
 
 if __name__ == "__main__":

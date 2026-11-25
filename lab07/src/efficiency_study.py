@@ -1,8 +1,6 @@
-
 import copy
 import time
 import torch
-import torch.nn as nn
 import torch.nn.utils.prune as prune
 import pandas as pd
 import numpy as np
@@ -29,9 +27,6 @@ def measure_latency(model, device):
         for _ in range(20):
             model(example)
 
-        if device.type == "cuda":
-            torch.cuda.synchronize()
-
         measurements = []
 
         for _ in range(5):
@@ -39,9 +34,6 @@ def measure_latency(model, device):
 
             for _ in range(100):
                 model(example)
-
-            if device.type == "cuda":
-                torch.cuda.synchronize()
 
             measurements.append(
                 (time.perf_counter() - start) / 100 * 1000
@@ -110,6 +102,9 @@ def prepare_model(baseline, method, amount):
 def main():
     config = load_config()
 
+    torch.manual_seed(config["seed"])
+    np.random.seed(config["seed"])
+
     device = torch.device("cpu")
     print("Device:", device)
 
@@ -120,19 +115,24 @@ def main():
 
     checkpoint = torch.load(
         checkpoint_path,
-        map_location=device,
-        weights_only=False
+        map_location=device
     )
 
-    baseline = BaselineCNN(config).to(device)
-    baseline.load_state_dict(checkpoint["model_state_dict"])
+    baseline = BaselineCNN(
+        input_channels=config["model"]["input_channels"],
+        channels=config["model"]["channels"],
+        hidden_size=config["model"]["hidden_size"],
+        num_classes=config["model"]["num_classes"]
+    ).to(device)
+
+    baseline.load_state_dict(checkpoint)
     baseline.eval()
 
     results_dir = ROOT / "results"
     checkpoints_dir = ROOT / "checkpoints"
 
-    results_dir.mkdir(exist_ok=True)
-    checkpoints_dir.mkdir(exist_ok=True)
+    results_dir.mkdir(parents=True, exist_ok=True)
+    checkpoints_dir.mkdir(parents=True, exist_ok=True)
 
     experiments = [
         ("Baseline", 0),
@@ -157,7 +157,6 @@ def main():
         model.eval()
 
         actual_sparsity = get_sparsity(model)
-
         latency = measure_latency(model, device)
 
         name = f"{method.lower()}_{int(amount * 100)}"

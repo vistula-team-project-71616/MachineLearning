@@ -1,4 +1,3 @@
-import copy
 import time
 import yaml
 import torch
@@ -6,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import pandas as pd
 import numpy as np
+import random
 
 from pathlib import Path
 from torch.utils.data import DataLoader, random_split
@@ -190,9 +190,6 @@ def measure_latency(model, device):
         for _ in range(20):
             model(example)
 
-        if device.type == "cuda":
-            torch.cuda.synchronize()
-
         times = []
 
         for _ in range(5):
@@ -200,9 +197,6 @@ def measure_latency(model, device):
 
             for _ in range(100):
                 model(example)
-
-            if device.type == "cuda":
-                torch.cuda.synchronize()
 
             times.append(
                 (time.perf_counter() - start) / 100 * 1000
@@ -219,13 +213,11 @@ def save_model(model, path):
 def main():
     config = load_config()
 
+    random.seed(config["seed"])
     torch.manual_seed(config["seed"])
     np.random.seed(config["seed"])
 
-    device = torch.device(
-        "cuda" if torch.cuda.is_available() else "cpu"
-    )
-
+    device = torch.device("cpu")
     print("Device:", device)
 
     train_loader, val_loader, test_loader = load_data(config)
@@ -233,15 +225,21 @@ def main():
     teacher_checkpoint = torch.load(
         ROOT / config["checkpoint"]["directory"] /
         config["checkpoint"]["filename"],
-        map_location=device,
-        weights_only=False
+        map_location=device
     )
 
-    teacher = BaselineCNN(config).to(device)
-    teacher.load_state_dict(teacher_checkpoint["model_state_dict"])
+    teacher = BaselineCNN(
+        input_channels=config["model"]["input_channels"],
+        channels=config["model"]["channels"],
+        hidden_size=config["model"]["hidden_size"],
+        num_classes=config["model"]["num_classes"]
+    ).to(device)
+
+    teacher.load_state_dict(teacher_checkpoint)
     teacher.eval()
 
     teacher_accuracy = evaluate(teacher, test_loader, device)
+
     plain_student = StudentCNN().to(device)
 
     plain_parameters = sum(
@@ -290,7 +288,7 @@ def main():
     )
 
     checkpoints_dir = ROOT / "checkpoints"
-    checkpoints_dir.mkdir(exist_ok=True)
+    checkpoints_dir.mkdir(parents=True, exist_ok=True)
 
     teacher_size = save_model(
         teacher,
@@ -336,7 +334,7 @@ def main():
     ]
 
     results_dir = ROOT / "results"
-    results_dir.mkdir(exist_ok=True)
+    results_dir.mkdir(parents=True, exist_ok=True)
 
     df = pd.DataFrame(results)
 

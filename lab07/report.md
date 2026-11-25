@@ -1,10 +1,11 @@
-## AI Lab 7
+# AI Lab 7
 ### Karina Romanova 71616
 ### Group 2
 
 ## 1. Introduction
 
 The aim was to study model compression techniques and compare their effects on accuracy, storage size and inference latency. The experiments used Fashion-MNIST and were performed on CPU.
+
 The work included training a baseline CNN, applying magnitude pruning, comparing dense and sparse storage, and training a smaller student model with and without knowledge distillation.
 
 ## 2. Experimental Setup
@@ -60,6 +61,8 @@ The work included training a baseline CNN, applying magnitude pruning, comparing
 
 ![Structured pruning results](results/structured_pruning.png)
 
+Structured pruning sets selected filters to zero but does not physically remove them from the model architecture. Therefore, the total parameter count remains unchanged.
+
 ## 5. Storage and Inference Efficiency
 
 | Model | Sparsity | Dense size (MB) | Sparse COO size (MB) | CPU latency (ms/image) |
@@ -72,6 +75,8 @@ The work included training a baseline CNN, applying magnitude pruning, comparing
 | Layer-wise | 90% | 3.43 | 1.86 | 0.621 |
 | Layer-wise | 95% | 3.43 | 0.93 | 0.614 |
 
+Dense checkpoint size remained unchanged after unstructured pruning. Sparse COO representation required less storage at high sparsity levels, but it did not consistently improve inference latency because inference still used dense tensors.
+
 ## 6. Knowledge Distillation
 
 Knowledge distillation was tested using the baseline CNN as the teacher and a smaller CNN as the student.
@@ -83,7 +88,9 @@ The student contained 73,658 parameters. It was trained in two ways:
 
 The distillation settings were temperature T = 4 and alpha = 0.5:
 
-Loss = alpha * CE + (1 - alpha) * T^2 * KL`
+\[
+Loss = \alpha \cdot CE + (1-\alpha) \cdot T^2 \cdot KL
+\]
 
 ### 6.1 Results
 
@@ -103,8 +110,5 @@ Loss = alpha * CE + (1 - alpha) * T^2 * KL`
 | Energy | Energy consumption was not measured directly because no power measurement equipment or energy profiling tool was used. |
 
 ## 8. Conclusion
-
-
-## Conclusion
 
 The experiments showed that pruning can reduce the number of non-zero weights while maintaining good accuracy. The student model was significantly smaller and faster than the teacher. However, knowledge distillation did not improve accuracy in this experiment. Overall, model compression reduces model size, but does not always improve inference speed.

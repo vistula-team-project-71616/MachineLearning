@@ -1,4 +1,3 @@
-
 import copy
 import yaml
 import torch
@@ -7,6 +6,7 @@ import torch.nn.utils.prune as prune
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 
 from pathlib import Path
 from torch.utils.data import DataLoader, random_split
@@ -112,10 +112,11 @@ def calculate_sparsity(model):
     zero_weights = 0
 
     for module, _ in get_prunable_layers(model):
-        if hasattr(module, "weight_mask"):
-            weights = module.weight_mask
-        else:
-            weights = module.weight
+        weights = (
+            module.weight_mask
+            if hasattr(module, "weight_mask")
+            else module.weight
+        )
 
         total_weights += weights.numel()
         zero_weights += (weights == 0).sum().item()
@@ -129,10 +130,11 @@ def calculate_filter_pruning(model):
 
     for module in model.modules():
         if isinstance(module, nn.Conv2d):
-            if hasattr(module, "weight_mask"):
-                weights = module.weight_mask
-            else:
-                weights = module.weight
+            weights = (
+                module.weight_mask
+                if hasattr(module, "weight_mask")
+                else module.weight
+            )
 
             filter_norms = weights.reshape(
                 weights.shape[0], -1
@@ -174,7 +176,7 @@ def fine_tune(model, train_loader, val_loader, device):
 
             for module, _ in get_prunable_layers(model):
                 if hasattr(module, "weight_mask"):
-                    module.weight.data.mul_(module.weight_mask)
+                    module.weight_orig.data.mul_(module.weight_mask)
 
             total_loss += loss.item()
 
@@ -222,10 +224,7 @@ def run_experiment(
     print(f"    Weight sparsity: {initial_sparsity:.2f}%")
 
     if method == "Structured":
-        print(
-            f"    Removed filters: "
-            f"{initial_filter_pruning:.2f}%"
-        )
+        print(f"    Removed filters: {initial_filter_pruning:.2f}%")
 
     fine_tune(
         model,
@@ -242,10 +241,7 @@ def run_experiment(
     print(f"    Final weight sparsity: {final_sparsity:.2f}%")
 
     if method == "Structured":
-        print(
-            f"    Final removed filters: "
-            f"{final_filter_pruning:.2f}%"
-        )
+        print(f"    Final removed filters: {final_filter_pruning:.2f}%")
 
     return {
         "method": method,
@@ -259,13 +255,11 @@ def run_experiment(
 def main():
     config = load_config()
 
+    random.seed(config["seed"])
     torch.manual_seed(config["seed"])
     np.random.seed(config["seed"])
 
-    device = torch.device(
-        "cuda" if torch.cuda.is_available() else "cpu"
-    )
-
+    device = torch.device("cpu")
     print("Device:", device)
 
     train_loader, val_loader, test_loader = load_data(config)
@@ -277,13 +271,17 @@ def main():
 
     checkpoint = torch.load(
         checkpoint_path,
-        map_location=device,
-        weights_only=False
+        map_location=device
     )
 
-    baseline = BaselineCNN(config).to(device)
-    baseline.load_state_dict(checkpoint["model_state_dict"])
+    baseline = BaselineCNN(
+        input_channels=config["model"]["input_channels"],
+        channels=config["model"]["channels"],
+        hidden_size=config["model"]["hidden_size"],
+        num_classes=config["model"]["num_classes"]
+    ).to(device)
 
+    baseline.load_state_dict(checkpoint)
     baseline.eval()
 
     baseline_accuracy = evaluate(
@@ -365,9 +363,7 @@ def main():
     plt.legend()
     plt.grid(True)
 
-    plt.savefig(
-        results_dir / "pruning_sparsity.png"
-    )
+    plt.savefig(results_dir / "pruning_sparsity.png")
     plt.close()
 
     subset = results_df[
@@ -389,9 +385,7 @@ def main():
     plt.legend()
     plt.grid(True)
 
-    plt.savefig(
-        results_dir / "structured_pruning.png"
-    )
+    plt.savefig(results_dir / "structured_pruning.png")
     plt.close()
 
     print("\nPRUNING RESULTS")
